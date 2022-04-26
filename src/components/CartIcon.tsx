@@ -29,6 +29,10 @@ export default class CartIcon extends Component<CartIconProps, CartIconState> {
     this.onCartUpdate();
   }
 
+  componentDidUpdate() {
+    this.onCartUpdate();
+  }
+
   onCartUpdate = async () => {
     var cartItems = await localStorageService.getCartItems();
     this.setState({ cartItems: cartItems.reduce(((pre, cur) => pre + cur.quantity), 0) });
