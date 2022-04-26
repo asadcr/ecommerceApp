@@ -2,24 +2,43 @@ import { Component } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { localStorageService } from "../Service/LocalStorageService";
+import { CartItem, Product } from '../models/Product';
+import EventEmitter, { Events } from '../Service/eventemitter';
 
 interface CartIconProps {
-  totalCartItem: number;
   navigation : any
 }
 
-export default class CartIcon extends Component<CartIconProps, {}> {
+interface CartIconState {
+  cartItems : number
+}
+
+export default class CartIcon extends Component<CartIconProps, CartIconState> {
 
   constructor(props: {}) {
     super(props as any);
 
+    this.state = {
+      cartItems: 0
+    }
+
+    EventEmitter.on(Events.onCartUpdate, this.onCartUpdate);
+  }
+
+  async componentDidMount() {
+    this.onCartUpdate();
+  }
+
+  onCartUpdate = async () => {
+    var cartItems = await localStorageService.getCartItems();
+    this.setState({ cartItems: cartItems.reduce(((pre, cur) => pre + cur.quantity), 0) });
   }
 
   render() {
     return (
       <>
         {
-        this.props.totalCartItem != 0 && <View style={{
+        this.state.cartItems != 0 && <View style={{
             width: 30,
             height: 30,
             borderRadius: 20,
@@ -29,7 +48,7 @@ export default class CartIcon extends Component<CartIconProps, {}> {
             marginLeft: "auto",
           }}
         >
-          <Text>{this.props.totalCartItem}</Text>
+          <Text>{this.state.cartItems}</Text>
         </View>
         }
         <Icon

@@ -6,11 +6,10 @@ export class Product {
     detail: string = ''
 }
 
-export interface ItemQuantity {
-    productId: number
+export interface CartItem {
+    product: Product
     quantity : number
 }
-
 
 export class ProductUser {
     id : number = 0

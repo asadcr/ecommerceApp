@@ -17,7 +17,7 @@ import {
 
 interface productProps {
   navigation: any;
-  cartItem?: (totalItems: number) => void;
+  searchText: string;
 }
 
 interface ProductState {
@@ -47,12 +47,10 @@ export default class ProductCard extends Component<productProps, ProductState> {
   }
 
   addItem = async (item: Product) => {
-    await localStorageService.saveItemsAddToCart(item);
-    var totalitem = await localStorageService.getTotalCartItem();
-    return this.props.cartItem!(totalitem);
+    await localStorageService.addOrUpdateCartItems(item, ((quantity) => quantity + 1));
   };
 
-  Card = (item: Product) => {
+  renderCard = (item: Product) => {
     return (
       <View style={style.card} key={item.id}>
         <TouchableOpacity
@@ -111,6 +109,14 @@ export default class ProductCard extends Component<productProps, ProductState> {
     );
   };
 
+  getProducts = () => {
+    if(this.props.searchText.length > 0) {
+      return this.state.products?.filter(f => f.name.toLowerCase().includes(this.props.searchText.toLowerCase()));
+    }
+    
+    return this.state.products;
+  }
+
   render() {
     return (
       <FlatList
@@ -121,9 +127,9 @@ export default class ProductCard extends Component<productProps, ProductState> {
           paddingBottom: 50,
         }}
         numColumns={2}
-        data={this.state.products}
+        data={this.getProducts()}
         renderItem={({ item }) => {
-          return this.Card(item);
+          return this.renderCard(item);
         }}
       />
     );
@@ -142,7 +148,6 @@ const style = StyleSheet.create({
   },
   imageLayout: {
     flex: 1,
-    resizeMode: "contain",
-    display : 'contents'
+    resizeMode: "contain"
   },
 });

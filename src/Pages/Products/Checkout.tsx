@@ -62,7 +62,7 @@ export default class Checkout extends Component<CheckoutProps, CheckoutState> {
             <View style={style.imageContainer}>
               <Image
                 source={require('../../assets/credit_card.png')}
-                style={{ resizeMode: "contain", flex: 1 , display : 'contents'}}
+                style={{ resizeMode: "contain", flex: 1}}
               />
             </View>
             <View style={style.detailsContainer}>

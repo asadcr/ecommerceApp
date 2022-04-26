@@ -1,33 +1,26 @@
 import { Component } from "react";
-import { View, Text ,SafeAreaView,StyleSheet,TextInput,TouchableOpacity } from 'react-native';
+import { View, Text, SafeAreaView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import COLORS from "../../Styles/color";
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ProductCard from "./ProductCard";
 import CartIcon from "../../components/CartIcon"
 import { localStorageService } from "../../Service/LocalStorageService";
 interface HomeState {
-  selectCategory : number
-  totalCartItem : number
+  selectCategory: number
+  searchText: string
 }
 
 export default class HomeScreen extends Component<any, HomeState> {
 
-  categoryTabs : string[] = ['POPULAR', 'ORGANIC', 'INDOORS', 'SYNTHETIC'];
+  categoryTabs: string[] = ['POPULAR', 'ORGANIC', 'INDOORS', 'SYNTHETIC'];
 
   constructor(props: {}) {
     super(props as any);
 
     this.state = {
-      selectCategory : 0,
-      totalCartItem : 0
+      selectCategory: 0,
+      searchText: ''
     };
-  }
-
-
-
-  async componentDidMount() {
-    var products = await localStorageService.getTotalCartItem();
-    this.setState({ totalCartItem: products });
   }
 
   CategoryTabsList = () => {
@@ -37,14 +30,14 @@ export default class HomeScreen extends Component<any, HomeState> {
           <TouchableOpacity
             key={index}
             activeOpacity={0.8}
-             onPress={() => this.setState({selectCategory : index})}
-            >
+            onPress={() => this.setState({ selectCategory: index })}
+          >
             <Text
               style={[
                 style.categoryText,
                 this.state.selectCategory === index && style.categoryTextSelected,
               ]}>
-              {item} 
+              {item}
             </Text>
           </TouchableOpacity>
         ))}
@@ -53,12 +46,10 @@ export default class HomeScreen extends Component<any, HomeState> {
   };
 
 
-  toatalCartItem = (count : number) => {
-
-    this.setState({totalCartItem : count});
-
+  onChangeText = (text: string) => {
+    this.setState({ searchText: text });
   }
- 
+
   render() {
     return (
       <SafeAreaView
@@ -78,15 +69,15 @@ export default class HomeScreen extends Component<any, HomeState> {
             </Text>
           </View>
 
-        {/* cart item icon with count  */}
-        <CartIcon totalCartItem={this.state.totalCartItem} navigation={this.props.navigation} />
-        
+          {/* cart item icon with count  */}
+          <CartIcon navigation={this.props.navigation} />
+
         </View>
 
         <View style={{ marginTop: 30, flexDirection: "row" }}>
           <View style={style.searchContainer}>
             <Icon name="search" size={25} style={{ marginLeft: 20 }} />
-            <TextInput placeholder="Search" style={style.input} />
+            <TextInput placeholder="Search" style={style.input} onChangeText={this.onChangeText} value={this.state.searchText} />
           </View>
           <View style={style.sortBtn}>
             <Icon name="sort" size={30} color={COLORS.white} />
@@ -96,13 +87,11 @@ export default class HomeScreen extends Component<any, HomeState> {
         {this.CategoryTabsList()}
 
         {/* product list component */}
-        <ProductCard navigation={this.props.navigation} cartItem={(count) => this.toatalCartItem(count)}  />
-        
+        <ProductCard navigation={this.props.navigation} searchText={this.state.searchText} />
+
       </SafeAreaView>
     );
   }
-
-
 }
 
 const style = StyleSheet.create({
@@ -146,7 +135,7 @@ const style = StyleSheet.create({
     justifyContent: 'space-between',
   },
 
-  categoryText: {fontSize: 16, color: 'grey', fontWeight: 'bold'},
+  categoryText: { fontSize: 16, color: 'grey', fontWeight: 'bold' },
 
   categoryTextSelected: {
     color: COLORS.green,

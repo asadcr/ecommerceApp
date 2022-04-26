@@ -7,60 +7,42 @@ import {
   ScrollView,
   TouchableHighlight,
   SafeAreaView,
+  TouchableOpacity,
 } from "react-native";
 import COLORS from "../../Styles/color";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import { Product } from "../../models/Product";
+import { CartItem } from "../../models/Product";
 import { localStorageService } from "../../Service/LocalStorageService";
-
 
 interface CartItemsProps {
   navigation: any;
 }
 
 interface CartItemsState {
-  items: Product[] | null;
-  totalPrice : number;
-  totalQuantity : number
+  items: CartItem[];
+  totalPrice: number;
 }
 
 export default class CartItems extends Component<CartItemsProps, CartItemsState> {
   itemTabs: string[] = ["Name", "Total Price", "Quantity", "Remove"];
 
-  itemQuantity: Map<number, number> = new Map<number, number>();
-
   constructor(props: {}) {
     super(props as any);
 
     this.state = {
-      items: null,
+      items: [],
       totalPrice: 0,
-      totalQuantity : 0
     };
   }
 
- 
   async componentDidMount() {
+    this.getData();
+  }
 
-    let totalprice = 0;
-    let totalQuantity = 0
-
+  getData = async () => {
     var items = await localStorageService.getCartItems();
-
-    var itemQuantity = await localStorageService.getItemQuantity();
-
-    itemQuantity.forEach((item) => { 
-      totalQuantity = totalQuantity + item.quantity;
-      this.itemQuantity.set(item.productId, item.quantity);
-    });
-
-    items.forEach((item) => { 
-      totalprice = parseFloat(`${totalprice}`) + parseFloat(`${(item.price * this.itemQuantity.get(item.id)!)}`);
-    });
-
-   
-    this.setState({ items: items , totalPrice : parseFloat(totalprice.toFixed(2)) , totalQuantity : totalQuantity });
-    
+    var totalprice = items.reduce((val, item) => val + (item.product.price * item.quantity), 0.0);
+    this.setState({ items: items, totalPrice: parseFloat(totalprice.toFixed(2)) });
   }
 
   itemsTabsList = () => {
@@ -75,50 +57,24 @@ export default class CartItems extends Component<CartItemsProps, CartItemsState>
     );
   };
 
-  removeFromCart = async (item: Product) => {
-    var result = await localStorageService.deleteAddToCartItems(item);
-    if(result){
-      const items = this.state.items!.filter((items) => items.id != item.id);
-
-      this.setState({
-        items: items , 
-        totalPrice :parseFloat( (parseFloat(`${this.state.totalPrice}`) - parseFloat(`${item.price * this.itemQuantity.get(item.id)!}`)).toFixed(2)),
-        totalQuantity : this.state.totalQuantity - this.itemQuantity.get(item.id)!
-      })
-
-    }
-
+  removeFromCart = async (item: CartItem) => {
+    await localStorageService.deleteItemsFromCart(item.product);
+    this.getData();
   };
 
-  increment = async (item: Product) => {
-
-   let count =  this.itemQuantity.get(item.id);
-
-   if(count! >= 1) {
-
-    this.itemQuantity.set(item.id,count! + 1)
-
-    await localStorageService.updateItemQuantity({productId : item.id , quantity : count! + 1});
-
-    this.setState({totalQuantity : this.state.totalQuantity + 1 , totalPrice : parseFloat((parseFloat(`${this.state.totalPrice}`) + parseFloat(`${item.price}`)).toFixed(2))})
-
-   }
-   
-
+  increment = async (item: CartItem) => {
+    localStorageService.addOrUpdateCartItems(item.product, ((quantity) => quantity + 1));
+    this.getData();
   };
 
-  decrement = async (item: Product) => {
-    let count =  this.itemQuantity.get(item.id);
+  decrement = async (item: CartItem) => {
 
-    if(count! > 1) {
-
-    this.itemQuantity.set(item.id,count! - 1)
- 
-    await localStorageService.updateItemQuantity({productId : item.id , quantity : count! - 1});
- 
-    this.setState({totalQuantity : this.state.totalQuantity - 1 , totalPrice : parseFloat((parseFloat(`${this.state.totalPrice}`) - parseFloat(`${item.price}`)).toFixed(2))})
-    
+    if (item.quantity == 1) {
+      return;
     }
+
+    localStorageService.addOrUpdateCartItems(item.product, ((quantity) => quantity - 1));
+    this.getData();
   };
 
   render() {
@@ -149,15 +105,15 @@ export default class CartItems extends Component<CartItemsProps, CartItemsState>
                       justifyContent: "center",
                     }}
                   >
-                      <Image
-                        style={{ width: 75, height: 75 , }}
-                        source={item.img}
-                      />
-                      <Text style={{  color: "black" }}>{item.name}</Text>
+                    <Image
+                      style={{ width: 75, height: 75, }}
+                      source={item.product.img}
+                    />
+                    <Text style={{ color: "black" }}>{item.product.name}</Text>
                   </View>
                   <View
                     style={{
-                      flex : 1,
+                      flex: 1,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
@@ -169,7 +125,7 @@ export default class CartItems extends Component<CartItemsProps, CartItemsState>
                         fontWeight: "bold",
                       }}
                     >
-                      ${item.price}
+                      ${item.product.price}
                     </Text>
                   </View>
 
@@ -191,12 +147,12 @@ export default class CartItems extends Component<CartItemsProps, CartItemsState>
                         fontWeight: "bold",
                       }}
                     >
-                    {this.itemQuantity.get(item.id)}
+                      {item.quantity}
                     </Text>
                     <TouchableHighlight onPress={() => this.increment(item)}>
-                    <View style={style.borderBtn}>
-                      <Text style={style.borderBtnText}>+</Text>
-                    </View>
+                      <View style={style.borderBtn}>
+                        <Text style={style.borderBtnText}>+</Text>
+                      </View>
                     </TouchableHighlight>
                   </View>
 
@@ -239,18 +195,23 @@ export default class CartItems extends Component<CartItemsProps, CartItemsState>
             </View>
             <View style={{ alignItems: "center", justifyContent: "center" }}>
               <Text style={{ color: COLORS.dark }}>
-                {this.state.totalQuantity}
+                {this.state.items.reduce((a, b) => a + b.quantity, 0)}
               </Text>
             </View>
-            <View style={{ alignItems: "center", justifyContent: "center" }}>
-              <Icon
-                onPress={() => this.props.navigation.navigate("Checkout")}
-                size={28}
-                name="check-circle"
-                style={{color: COLORS.green}}
-              />
-            </View>
           </View>
+          <TouchableOpacity onPress={() => this.props.navigation.navigate("Checkout")}>
+                <View style={style.buyBtn}>
+                  <Text
+                    style={{
+                      color: COLORS.white,
+                      fontSize: 18,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    BUY NOW
+                  </Text>
+                </View>
+              </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     );
@@ -266,7 +227,16 @@ const style = StyleSheet.create({
   },
 
   itemText: { fontSize: 16, color: "grey", fontWeight: "bold" },
-
+  buyBtn: {
+    width: 130,
+    height: 50,
+    backgroundColor: COLORS.green,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 30,
+    margin: 20,
+    textAlign: 'center'
+  },
   borderBtn: {
     borderColor: 'grey',
     borderWidth: 1,
@@ -275,6 +245,6 @@ const style = StyleSheet.create({
     alignItems: 'center',
     width: 30,
     height: 40,
-},
+  },
   borderBtnText: { fontWeight: 'bold', fontSize: 28 },
 });
